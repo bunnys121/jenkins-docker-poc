@@ -1,7 +1,7 @@
 ---
 - name: Deploy Docker container on target server
   hosts: target
-  become: no
+  become: yes
 
   vars:
     image_name: poc7-python-app
