@@ -1,0 +1,42 @@
+---
+- name: Deploy Docker container on target server
+  hosts: target
+  become: no
+
+  vars:
+    image_name: poc7-python-app
+    container_name: poc7-container
+    host_port: 5000
+    container_port: 5000
+
+  tasks:
+    - name: Stop existing container
+      shell: docker stop {{ container_name }}
+      ignore_errors: yes
+
+    - name: Remove existing container
+      shell: docker rm {{ container_name }}
+      ignore_errors: yes
+
+    - name: Remove existing Docker image
+      shell: docker rmi {{ image_name }}:latest
+      ignore_errors: yes
+
+    - name: Copy Docker image tar file to target server
+      copy:
+        src: /tmp/{{ image_name }}.tar
+        dest: /tmp/{{ image_name }}.tar
+
+    - name: Load Docker image
+      shell: docker load -i /tmp/{{ image_name }}.tar
+
+    - name: Run Docker container
+      shell: docker run -d --name {{ container_name }} -p {{ host_port }}:{{ container_port }} {{ image_name }}:latest
+
+    - name: Verify running container
+      shell: docker ps
+      register: docker_status
+
+    - name: Show running containers
+      debug:
+        var: docker_status.stdout_lines
