@@ -4,4 +4,4 @@ def test_home():
     client = app.test_client()
     response = client.get("/")
     assert response.status_code == 200
-    assert b"POC-2" in response.data
+    assert b"POC-7" in response.data
