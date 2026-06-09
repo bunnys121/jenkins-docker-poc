@@ -2,61 +2,57 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "poc2-python-app"
-        CONTAINER_NAME = "poc2-container"
-        APP_PORT = "5000"
+        IMAGE_NAME = "poc7-python-app"
+        IMAGE_TAG = "latest"
+        IMAGE_TAR = "/tmp/poc7-python-app.tar"
+        ANSIBLE_HOST_KEY_CHECKING = "False"
     }
 
     stages {
 
-        stage('1. Checkout Code') {
+        stage('Checkout Code') {
             steps {
-                echo 'Cloning source code from Git...'
-                checkout scm
+                git branch: 'ansible',
+                    url: 'https://github.com/bunnys121/jenkins-docker-poc.git'
             }
         }
 
-        stage('2. Install Dependencies') {
+        stage('Verify Tools') {
             steps {
-                echo 'Installing Python dependencies...'
                 sh '''
-                    python3 -m pip install --upgrade pip --break-system-packages
-                    pip3 install -r requirements.txt --break-system-packages
+                    echo "Checking required tools..."
+                    java -version || true
+                    docker --version
+                    ansible --version
+                    python3 --version || true
                 '''
             }
         }
 
-        stage('3. Build and Test') {
+        stage('Build Docker Image') {
             steps {
-                echo 'Running unit tests...'
                 sh '''
-                    pytest -v
+                    echo "Building Docker image..."
+                    docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
                 '''
             }
         }
 
-        stage('4. Build Docker Image') {
+        stage('Save Docker Image') {
             steps {
-                echo 'Building Docker image...'
                 sh '''
-                    docker build -t $IMAGE_NAME:latest .
+                    echo "Saving Docker image as tar file..."
+                    docker save -o ${IMAGE_TAR} ${IMAGE_NAME}:${IMAGE_TAG}
+                    ls -lh ${IMAGE_TAR}
                 '''
             }
         }
 
-        stage('5. Deploy Docker Container') {
+        stage('Deploy Using Ansible') {
             steps {
-                echo 'Deploying application container...'
                 sh '''
-                    docker stop $CONTAINER_NAME || true
-                    docker rm $CONTAINER_NAME || true
-
-                    docker run -d \
-                      --name $CONTAINER_NAME \
-                      -p $APP_PORT:5000 \
-                      $IMAGE_NAME:latest
-
-                    docker ps
+                    echo "Deploying Docker container using Ansible..."
+                    ansible-playbook -i ansible/inventory ansible/deploy.yml
                 '''
             }
         }
@@ -64,11 +60,11 @@ pipeline {
 
     post {
         success {
-            echo 'POC-2 completed successfully: Application deployed using Docker.'
+            echo "POC-7 deployment completed successfully."
         }
 
         failure {
-            echo 'POC-2 failed. Please check Jenkins console logs.'
+            echo "POC-7 deployment failed. Please check Jenkins console logs."
         }
     }
 }
