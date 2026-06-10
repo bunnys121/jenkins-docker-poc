@@ -52,7 +52,7 @@ pipeline {
             steps {
                 sh '''
                     echo "Deploying Docker container using Ansible..."
-                    ansible-playbook -i ansible/inventory ansible/deploy.yml
+                    ansible-playbook -i inventory deploy.yml
                 '''
             }
         }
